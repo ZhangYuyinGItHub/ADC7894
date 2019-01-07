@@ -4,6 +4,19 @@
 #include "uart.h"
 #include "stm32f10x_usart.h"
 
+#define  ADC_CONVST_PIN   GPIO_Pin_15   //PA15, out
+#define  ADC_SCLK_PIN     GPIO_Pin_3    //PB3, out
+#define  ADC_DATA_PIN     GPIO_Pin_4    //PB4, in
+#define  ADC_BUSY_PIN     GPIO_Pin_5    //PB5, in
+
+#define  ADC_CONVST_SET()      GPIO_SetBits(GPIOA, ADC_CONVST_PIN)
+#define  ADC_CONVST_RESET()    GPIO_ResetBits(GPIOA, ADC_CONVST_PIN)
+#define  ADC_CLK_SET()         GPIO_SetBits(GPIOB, ADC_SCLK_PIN)
+#define  ADC_CLK_RESET()       GPIO_ResetBits(GPIOB, ADC_SCLK_PIN)
+#define  ADC_GET_DATA_VALUE()  GPIO_ReadInputDataBit(GPIOB, ADC_DATA_PIN)
+#define  ADC_GET_BUSY_VALUE()  GPIO_ReadInputDataBit(GPIOB, ADC_BUSY_PIN)
+
+unsigned short adc_value = 0;
 static void delay(int time);
 
 adc_state state = ADC_STATE_IDLE;
@@ -15,49 +28,21 @@ void EXTI9_5_IRQHandler(void)
   {
 		 if (state == ADC_STATE_START)
 		 {
-			 unsigned short value = 0;
 			 state = ADC_STATE_CONVERTING;
 			 
-			 value = adc_read_value();
+			 adc_value = adc_read_value();
 			 
-//			 //send hex value from reg
-			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-			 USART_SendData(USART1, (u8)((value>>8)&0xff));
-			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-			 USART_SendData(USART1, (u8)(value&0xff));
-			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 if ((adc_value & 0xc000) == 0x00)
+			 {
+				   state = ADC_STATE_SUCCESS;
+			 }
+			 else
+			 {
+				   state = ADC_STATE_FAILED;
+			 }
 			 
-//			 USART_SendData(USART1, ' ');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 value = value * 10000 /128/64; //convert to voltage value
-//			 
-//			 //send value
-//			 USART_SendData(USART1, (u8)(value%10000 / 1000) + '0');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, (u8)(value % 1000 /100) + '0');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, (u8)(value % 100 /10) + '0');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, (u8)(value % 10 ) + '0');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, 'm');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, 'V');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 
-//			 USART_SendData(USART1, ' ');
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-			 
-//			 USART_SendData(USART1, (u8)(value&0xff));
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
-//			 USART_SendData(USART1, (u8)((value>>8)&0xff));
-//			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 uart_send_by_dec(adc_value);
+
 		 }
      EXTI_ClearITPendingBit(EXTI_Line5);     //清除中断标志位
   }
@@ -177,4 +162,9 @@ unsigned short adc_read_value(void)
 static void delay(int time)
 {
 	  while(time --);
+}
+
+int adc_get_state(void)
+{
+	  return state;
 }

@@ -24,7 +24,6 @@
 #include "stm32f10x_it.h"
 #include "uart.h"
 #include "stm32f10x_usart.h"
-#include "led.h"
 #include "Timer.h"
 
 extern unsigned char state;

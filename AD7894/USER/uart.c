@@ -3,11 +3,6 @@
 #include "uart.h"
 
 
-u8 USART_RX_BUF[USART_REC_LEN];     //????,??USART_REC_LEN???.
-u16 USART_RX_STA=0;       
-Cmd_Sruct gCmdStruct = {0};
-
-
 
 void USART1_Config(void)
 {
@@ -53,4 +48,31 @@ void NVIC_Configuration(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+}
+
+void uart_send_by_dec(short value)
+{
+			 value = value * 10000 /128/64; //convert to voltage value
+			 
+			 //send value
+			 USART_SendData(USART1, (u8)(value%10000 / 1000) + '0');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, (u8)(value % 1000 /100) + '0');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, (u8)(value % 100 /10) + '0');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, (u8)(value % 10 ) + '0');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, 'm');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, 'V');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
+			 
+			 USART_SendData(USART1, ' ');
+			 while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);
 }
